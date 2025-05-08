@@ -248,7 +248,7 @@ async def wakeMove(ctx: discord.Interaction, member: discord.Member, number: int
             return
         
     except Exception as e:
-        await ctx.followup.send(f"Error: {e}")
+        await ctx.followup.send(f"{member.mention} Leave a poke room", ephemeral=True)
     finally:
         # Clean up channels
         stopLoop = None
@@ -318,7 +318,7 @@ async def menuWakeMove(ctx: discord.Interaction, member: discord.Member):
             return
         
     except Exception as e:
-        await ctx.followup.send(f"Error: {e}", ephemeral=True)
+        await ctx.followup.send(f"{member.mention} Leave a poke room", ephemeral=True)
     finally:
         # Clean up channels
         stopLoop = None
