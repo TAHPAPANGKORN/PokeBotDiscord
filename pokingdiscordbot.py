@@ -2,7 +2,7 @@ import os
 from myserver import server_on
 import discord
 from discord.ext import commands
-from discord import app_commands, Forbidden
+from discord import app_commands, Forbidden, ui
 import discord.utils
 import asyncio
 from datetime import datetime, timedelta
@@ -15,7 +15,7 @@ TOKEN = os.environ.get('token')
 
 status = "/help afk poke bot"
 stopLoop = None
-
+baseColor = 0xECE7D9
 #--------- check ---------
 @bot.event
 async def on_ready():
@@ -32,53 +32,113 @@ async def _ready(ctx):
     
 
 #--------- help ---------
-embedColor = 0xAC7BB8
-def emmbedShow():
-    text = {"/help": "Provides help or detailed information about available commands.",
-            "/move": "Used to wake up friends.",
-            "/stop": "Stops or cancels the current process or action of the bot.",
-            "/invite": "Generates or shares a specific link or connection.",
-            "/micmute": "Mute microphone with a timer.",
-            "/headphonemute": "Mute the headphones with a timer.",
-    }
-    appsText = {"Poke Until Stop": "Keep poking until you click stop",
-                "Stop Poke": "Stop the poke action and prevent further poking until resumed"
-    }
-    helpText = ""
-    helpAppsText = ""
-    for key, value in text.items():
-        helpText += f"**{key}** : {value}\n"
-    for key, value in appsText.items():
-        helpAppsText += f"**{key}** : {value}\n" 
+def get_embed(language='th'):
+    embedColor = baseColor
+    if language == 'th':
+        title = "🤖 Help Me! - คำสั่งบอท"
+        description = (
+            "## 📌 Prefix คำสั่ง:\n"
+            "`\\` = คำสั่งแบบเดิม\n"
+            "`/` = คำสั่งแบบ Slash\n\n"
+            "### 📎 คำสั่งแบบ Prefix (\\\\)  \n"
+            "**\\help** : แสดงคำแนะนำ\n"
+            "**\\stop** : หยุดการทำงาน\n\n"
+            "### ⚙️ Slash Commands (/) แนะนำ\n"
+            "**/help** : 📘 คำแนะนำ\n"
+            "**/poke** : 🔔 ปลุกเพื่อน\n"
+            "**/stop** : ⛔ หยุดบอท\n"
+            "**/invite** : 🔗 แชร์ลิงก์\n"
+            "**/micmute** : 🎤 ปิดไมค์ชั่วคราว\n"
+            "**/headphonemute** : 🎧 ปิดหูฟังชั่วคราว\n\n"
+            "### 📲 เมนูแอป\n"
+            "**🌀 Poke Until Stop** : ทำงานจนกว่าจะหยุด\n"
+            "**🛑 Stop Poke** : หยุดการทำงาน\n\n"
+            "### ⚠️ หมายเหตุ\n"
+            "หากผู้ถูก Poke ไม่เปิดแจ้งเตือน บอทอาจทำงานไม่สมบูรณ์"
+        )
+    else:
+        title = "🤖 Help Me! - Bot Commands"
+        description = (
+            "## 📌 Command Prefix:\n"
+            "`\\` = Traditional command\n"
+            "`/` = Slash command\n\n"
+            "### 📎 Prefix Commands (\\\\) \n"
+            "**\\help** : Show help info\n"
+            "**\\stop** : Stop bot action\n\n"
+            "### ⚙️ Slash Commands (/) RECOMMEND\n"
+            "**/help** : 📘 Help information\n"
+            "**/poke** : 🔔 Wake friends\n"
+            "**/stop** : ⛔ Stop bot\n"
+            "**/invite** : 🔗 Invite link\n"
+            "**/micmute** : 🎤 Mute mic temporarily\n"
+            "**/headphonemute** : 🎧 Mute headphones temporarily\n\n"
+            "### 📲 App Menu\n"
+            "**🌀 Poke Until Stop** : Poke until stopped\n"
+            "**🛑 Stop Poke** : Stop poking\n\n"
+            "### ⚠️ Note\n"
+            "If the user has notifications off, it may not work properly."
+        )
 
-    emmbed = discord.Embed(
-        title='Help Me! - Bot Commands',
-        description=("**Commands with '\\\\' prefix:**\n"
-                    "**\\help** : Provides help or detailed information about available commands.\n"
-                    "**\\stop** : Stops or cancels the current process or action of the bot.\n\n"
-                    "**Recommend** ↓\n"
-                    "**Slash Commands with '/' prefix:**\n"
-                    f"{helpText}\n"
-                    "**Apps menu**\n"
-                    f"{helpAppsText}\n"
-                    "**⚠️ Important:**\n"
-                    "ถ้าคนที่ Poke ไม่ได้เปิดการแจ้งเตือนจะทำงานได้ไม่เต็มประสิทธิภาพ"),
-        color = embedColor,
-        timestamp = discord.utils.utcnow()
+    return discord.Embed(
+        title=title,
+        description=description,
+        color=embedColor,
+        timestamp=discord.utils.utcnow()
     )
-    return emmbed
 
-@bot.command(aliases=['help','help_me','hp'])
+        
+@bot.command(aliases=['help', 'help_me', 'hp'])
 async def _help(ctx):
-    emmbed = emmbedShow()
-    await ctx.channel.send(embed=emmbed)
+    embed = get_embed('en')  
 
+    # Callback เมื่อผู้ใช้เลือกภาษา
+    async def select_callback(interaction: discord.Interaction):
+        selected_lang = select.values[0]
+        new_embed = get_embed(selected_lang)
+        await interaction.response.edit_message(embed=new_embed, view=view)
+
+    # สร้าง dropdown menu
+    select = discord.ui.Select(
+        placeholder="🔄 เลือกภาษา / Choose Language",
+        options=[
+            discord.SelectOption(label="ไทย", value="th", emoji="🇹🇭", description="ช่วยเหลือภาษาไทย"),
+            discord.SelectOption(label="English", value="en", emoji="🇬🇧", description="Help in English")
+        ]
+    )
+    select.callback = select_callback
+
+    # สร้าง View แล้วใส่ select เข้าไป
+    view = discord.ui.View()
+    view.add_item(select)
+
+    # ส่งข้อความพร้อม embed และ view
+    await ctx.send(embed=embed, view=view)
 
 @bot.tree.command(name="help", description="Show help information")
-async def _help(ctx: discord.Interaction):
-    await ctx.response.defer(ephemeral=True)
-    emmbed = emmbedShow()  
-    await ctx.followup.send(embed=emmbed, ephemeral=True)
+async def help(interaction: discord.Interaction):
+    embed = get_embed('en')  
+
+    async def select_callback(select_interaction: discord.Interaction):
+        selected_lang = select.values[0]
+        new_embed = get_embed(selected_lang)
+        await select_interaction.response.edit_message(embed=new_embed, view=view)
+
+    # สร้าง dropdown menu
+    select = ui.Select(
+        placeholder="🔄 เลือกภาษา / Choose Language",
+        options=[
+            discord.SelectOption(label="ไทย", value="th", emoji="🇹🇭", description="คำสั่งช่วยเหลือภาษาไทย"),
+            discord.SelectOption(label="English", value="en", emoji="🇬🇧", description="Help commands in English")
+        ]
+    )
+    select.callback = select_callback
+
+    # ใส่ dropdown ใน view
+    view = ui.View()
+    view.add_item(select)
+
+    # ส่ง message ผ่าน slash command
+    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 #--------- end help ---------
 
 #--------- link ---------
@@ -90,7 +150,7 @@ async def sendLink(ctx: discord.Interaction):
     emmbed = discord.Embed(
         title='Link for invite this bot',
         description='Click the button below to invite bot.',
-        color=0xAC7BB8,
+        color=baseColor,
         timestamp=discord.utils.utcnow()
     )
     # Create a button
@@ -129,12 +189,11 @@ async def sendLink(ctx: discord.Interaction):
 #--------- end link ---------
 
 
-#--------- move ---------
-@bot.tree.command(name='move', description='Move and create poking room')
+#--------- poke ---------
+@bot.tree.command(name='poke', description='🔔 Wake someone up by moving them between voice channels!')
 async def wakeMove(ctx: discord.Interaction, member: discord.Member, number: int):
     global stopLoop, nameMember
     nameMember = member.name
-
     # Acknowledge the interaction immediately
     await ctx.response.defer(ephemeral=True)
    
@@ -148,8 +207,8 @@ async def wakeMove(ctx: discord.Interaction, member: discord.Member, number: int
     originalChannel = member.voice.channel
     try:
         await ctx.followup.send(f"{ctx.user.name} move {member.mention} {number} times")  # Initial response
-        room1 = "Poke room 1"
-        room2 = "Poke room 2"
+        room1 = "🔔 Poke room 1"
+        room2 = "🔔 Poke room 2"
         channel1 = await ctx.guild.create_voice_channel(room1)
         channel2 = await ctx.guild.create_voice_channel(room2)
 
@@ -161,11 +220,11 @@ async def wakeMove(ctx: discord.Interaction, member: discord.Member, number: int
                 )
                 await asyncio.sleep(1)  # Wait for 1 second
                 await member.move_to(channel2)
-
+                
 
         # Move back to the original channel
         stopLoop = False
-        await member.send(f"{member.mention} We tried to wake you up!")
+        await member.send(f"✅ {member.mention} We tried to wake you up!")
         await member.move_to(originalChannel)
     except Forbidden:
         await ctx.followup.send(f"You must have given the bot permission in your private room.", ephemeral=True)
@@ -179,7 +238,7 @@ async def wakeMove(ctx: discord.Interaction, member: discord.Member, number: int
                 existingCannel = channel
                 break
 
-        # existingCannel always true 
+        #existingCannel always true 
         if existingCannel and existingCannel.name not in [room1, room2]:
             await member.move_to(existingCannel)
             await ctx.followup.send(f"{member.mention} has been moved to {existingCannel.name}.", ephemeral=True)
@@ -215,8 +274,8 @@ async def menuWakeMove(ctx: discord.Interaction, member: discord.Member):
     originalChannel = member.voice.channel
     try:
         await ctx.followup.send(f"{ctx.user.name} move {member.mention} until stop")  # Initial response
-        room1 = "Poke room 1"
-        room2 = "Poke room 2"
+        room1 = "🔔 Poke room 1"
+        room2 = "🔔 Poke room 2"
         channel1 = await ctx.guild.create_voice_channel(room1)
         channel2 = await ctx.guild.create_voice_channel(room2)
 
@@ -265,7 +324,7 @@ async def menuWakeMove(ctx: discord.Interaction, member: discord.Member):
         stopLoop = None
         await channel1.delete()
         await channel2.delete()
-#--------- end move ---------
+#--------- end poke ---------
 
 #--------- mic mute ---------
 @bot.tree.command(name="micmute", description="Set time to mute microphone")
