@@ -9,6 +9,9 @@ import discord.utils
 import asyncio
 from datetime import datetime, timedelta
 import pytz
+from dotenv import load_dotenv
+
+load_dotenv()
 
 bot = commands.Bot(command_prefix="\\", intents=discord.Intents.all(),help_command=None)
 
