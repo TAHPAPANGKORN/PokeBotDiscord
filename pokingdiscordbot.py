@@ -1,4 +1,6 @@
 import os
+import time
+import random
 from myserver import server_on
 import discord
 from discord.ext import commands
@@ -463,7 +465,30 @@ async def menuStop(ctx: discord.Interaction, user: discord.User):
 
   
 server_on()
-bot.run(TOKEN)
+
+MAX_RETRIES = 10
+BASE_DELAY = 60  # Initial wait of 60 seconds
+
+for attempt in range(MAX_RETRIES):
+    try:
+        # Note: Discord/Cloudflare 429 (Error 1015) is a known issue on Render's shared IPs.
+        # This loop waits for the rate limit to expire instead of crashing the bot.
+        bot.run(TOKEN)
+        break  
+    except discord.errors.HTTPException as e:
+        if e.status == 429:
+            # Add some jitter to avoid synchronized restarts with other bots on the same IP
+            delay = BASE_DELAY + random.uniform(0, 30)
+            print(f"!!! DIscord Rate Limit !!! (429/1015)")
+            print(f"This is likely due to Render's shared IP address being flagged by Discord.")
+            print(f"Waiting {delay:.1f}s before retry {attempt + 1}/{MAX_RETRIES}...")
+            time.sleep(delay)
+        else:
+            print(f"Serious Discord error: {e}")
+            break
+    except Exception as e:
+        print(f"The bot encountered an unexpected error: {e}")
+        break
 
 
 
