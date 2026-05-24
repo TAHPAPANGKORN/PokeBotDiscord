@@ -16,7 +16,7 @@ A Discord uitlity tools for user in voice channel for poking afk people in voice
 | ---------------| -----------|
 | Ptyhon        | >= 3.11   |
 | flask         | >= 3.0.0  |
-| discord.py    | >= 2.3.2  |
+| discord.py    | >= 2.3.0  |
 | pytz          | >= 2024.1 |
 | python-dotenv | >= 1.0.0  |
 
