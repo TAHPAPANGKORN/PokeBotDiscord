@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pokepoke-discord-bot"
+version = "3.0.0"
+description = "A Discord bot for poke some user afk"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "Papangkorn Pitjawong", email = "papangkorn.pitjawong.work@gmail.com" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "flask>=3.0.0",
+    "discord.py>=2.3.0",
+    "pytz>=2024.1",
+    "python-dotenv>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/TAHPAPANGKORN/PokeBotDiscord"
+Bug-Tracker = "https://github.com/TAHPAPANGKORN/PokeBotDiscord/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+
