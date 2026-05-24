@@ -7,7 +7,7 @@ name = "pokepoke-discord-bot"
 version = "3.0.0"
 description = "A Discord bot for poke some user afk"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 authors = [
     { name = "Papangkorn Pitjawong", email = "papangkorn.pitjawong.work@gmail.com" }
 ]
