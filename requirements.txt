@@ -1,4 +1,0 @@
-flask
-discord
-pytz
-python-dotenv

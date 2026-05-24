@@ -1,3 +1,6 @@
+# asset
+graphics/*
+
 # Custom ignores
 link.txt
 .env
