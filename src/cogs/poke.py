@@ -35,17 +35,17 @@ class Poke(commands.Cog):
         await ctx.response.defer(ephemeral=True)
     
         if number <= 0:
-            await ctx.followup.send("Please specify the number of rounds greater than 0!")
+            await ctx.followup.send("Please specify the number of rounds greater than 0!", ephemeral=True)
             return
         if not member.voice:
-            await ctx.followup.send(f"{member.mention} Not In Voice Channel!")
+            await ctx.followup.send(f"{member.mention} Not In Voice Channel!", ephemeral=True)
             return
 
         originalChannel = member.voice.channel
         channel1 = None
         channel2 = None
         try:
-            await ctx.followup.send(f"{ctx.user.name} move {member.mention} {number} times")  # Initial response
+            await ctx.followup.send(f"{ctx.user.name} move {member.mention} {number} times", ephemeral=True)  # Initial response
             room1 = "🔔 Poke room 1"
             room2 = "🔔 Poke room 2"
             channel1 = await ctx.guild.create_voice_channel(room1)

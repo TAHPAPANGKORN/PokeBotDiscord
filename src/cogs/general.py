@@ -161,8 +161,10 @@ class General(commands.Cog):
         tahId = int(os.environ.get('ownerID', '123123123'))
         tahMember = ctx.guild.get_member(tahId)
 
+        await ctx.response.defer(ephemeral=True) 
+
         if tahMember is None:
-            await ctx.response.send_message("User with the specified ID is not in this server.")
+            await ctx.followup.send("User with the specified ID is not in this server.", ephemeral=True)
             return
 
         tah = tahMember.mention
@@ -170,21 +172,21 @@ class General(commands.Cog):
         if ctx.user.voice and ctx.user.voice.channel:
             targetChannel = ctx.user.voice.channel
         else:
-            await ctx.response.send_message("You must be in a voice channel to call someone.")
+            await ctx.followup.send("You must be in a voice channel to call someone.", ephemeral=True)
             return
 
         if tahMember.voice and tahMember.voice.channel == targetChannel:
-            await ctx.response.send_message(f"{tah} is already in your room.")
+            await ctx.followup.send(f"{tah} is already in your room.", ephemeral=True)
             return
 
         if tahMember.voice:
             try:
                 await tahMember.move_to(targetChannel)
-                await ctx.response.send_message(f"Called {tah} to room {targetChannel.name}.")
+                await ctx.followup.send(f"Called {tah} to room {targetChannel.name}.", ephemeral=True)
             except Exception as e:
-                await ctx.response.send_message(f"Failed to move {tah}: {str(e)}")
+                await ctx.followup.send(f"Failed to move {tah}: {str(e)}", ephemeral=True)
         else:
-            await ctx.response.send_message(f"{tah} is not currently in a voice channel.")
+            await ctx.followup.send(f"{tah} is not currently in a voice channel.", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(General(bot))

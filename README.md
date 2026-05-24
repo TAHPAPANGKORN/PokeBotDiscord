@@ -1,4 +1,4 @@
-# PokePoke Discord Bot (Version 3.0.0)
+# PokePoke Discord Bot (Version 3.x.x)
 
 A Discord uitlity tools for user in voice channel for poking afk people in voice chanel
 
