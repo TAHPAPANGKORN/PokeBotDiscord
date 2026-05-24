@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import discord.utils
+import os
 
 baseColor = 0xECE7D9
 botLink = "https://discord.com/oauth2/authorize?client_id=1208764608727359601"
@@ -92,7 +93,7 @@ class General(commands.Cog):
         # ส่งข้อความพร้อม embed และ view
         await ctx.send(embed=embed, view=view)
 
-    @bot.tree.command(name="help", description="Show help information")
+    @app_commands.command(name="help", description="Show help information")
     async def help(self, interaction: discord.Interaction):
         embed = get_embed('en')  
 
@@ -101,8 +102,7 @@ class General(commands.Cog):
             new_embed = get_embed(selected_lang)
             await select_interaction.response.edit_message(embed=new_embed, view=view)
 
-        # สร้าง dropdown menu
-        select = ui.Select(
+        select = discord.ui.Select(
             placeholder="🔄 เลือกภาษา / Choose Language",
             options=[
                 discord.SelectOption(label="ไทย", value="th", emoji="🇹🇭", description="คำสั่งช่วยเหลือภาษาไทย"),
@@ -111,37 +111,9 @@ class General(commands.Cog):
         )
         select.callback = select_callback
 
-        # ใส่ dropdown ใน view
-        view = ui.View()
+        view = discord.ui.View()
         view.add_item(select)
 
-        # ส่ง message ผ่าน slash command
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
-    @app_commands.command(name="help", description="Show help information")
-    async def help(interaction: discord.Interaction):
-        embed = get_embed('en')  
-
-        async def select_callback(select_interaction: discord.Interaction):
-            selected_lang = select.values[0]
-            new_embed = get_embed(selected_lang)
-            await select_interaction.response.edit_message(embed=new_embed, view=view)
-
-        # สร้าง dropdown menu
-        select = ui.Select(
-            placeholder="🔄 เลือกภาษา / Choose Language",
-            options=[
-                discord.SelectOption(label="ไทย", value="th", emoji="🇹🇭", description="คำสั่งช่วยเหลือภาษาไทย"),
-                discord.SelectOption(label="English", value="en", emoji="🇬🇧", description="Help commands in English")
-            ]
-        )
-        select.callback = select_callback
-
-        # ใส่ dropdown ใน view
-        view = ui.View()
-        view.add_item(select)
-
-        # ส่ง message ผ่าน slash command
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
     @app_commands.command(name='invite', description='Get Link To Invite')
@@ -183,5 +155,36 @@ class General(commands.Cog):
         view.add_item(button2)
         await ctx.followup.send(embed=emmbed, view=view, ephemeral=True)
 
+    # Slash Command: /tah
+    @app_commands.command(name='tah', description='Call cheetah to your room')
+    async def callTah(self, ctx: discord.Interaction):
+        tahId = int(os.environ.get('ownerID', '123123123'))
+        tahMember = ctx.guild.get_member(tahId)
+
+        if tahMember is None:
+            await ctx.response.send_message("User with the specified ID is not in this server.")
+            return
+
+        tah = tahMember.mention
+
+        if ctx.user.voice and ctx.user.voice.channel:
+            targetChannel = ctx.user.voice.channel
+        else:
+            await ctx.response.send_message("You must be in a voice channel to call someone.")
+            return
+
+        if tahMember.voice and tahMember.voice.channel == targetChannel:
+            await ctx.response.send_message(f"{tah} is already in your room.")
+            return
+
+        if tahMember.voice:
+            try:
+                await tahMember.move_to(targetChannel)
+                await ctx.response.send_message(f"Called {tah} to room {targetChannel.name}.")
+            except Exception as e:
+                await ctx.response.send_message(f"Failed to move {tah}: {str(e)}")
+        else:
+            await ctx.response.send_message(f"{tah} is not currently in a voice channel.")
+
 async def setup(bot):
-    await bot.add_cog(Genernal(bot))
+    await bot.add_cog(General(bot))

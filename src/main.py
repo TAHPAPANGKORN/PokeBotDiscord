@@ -5,17 +5,17 @@ import asyncio
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-from src.myserver import server_on
+from myserver import server_on
 
 load_dotenv()
 TOKEN = os.environ.get('token')
 
 bot = commands.Bot(command_prefix="\\", intents=discord.Intents.all(),help_command=None)
-status = "/help afk poke bot"
+status = "/help PokePoke"
 
 
 async def load_extensions():
-    extensions = ['src.cogs.general', 'src.cogs.voice', 'src.cogs.poke']
+    extensions = ['cogs.general', 'cogs.voice', 'cogs.poke']
     for ext in extensions:
         try:
             await bot.load_extension(ext)
