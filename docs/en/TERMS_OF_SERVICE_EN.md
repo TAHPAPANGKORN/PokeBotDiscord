@@ -1,6 +1,6 @@
 # Terms of Service (PokePoke)
 
-**Last Updated:** May 25, 2026
+**Last Updated:** May 27, 2026
 
 Welcome to **PokePoke** ("the Bot"). By adding the Bot to your Discord server, executing its commands, or interacting with it in any way, you agree to comply with and be bound by these Terms of Service. If you do not agree to these terms, you must immediately remove the Bot from your server and cease all interaction with it.
 
@@ -57,4 +57,4 @@ We reserve the right to update or modify these Terms at any time. Any changes wi
 ### Contact
 If you have any questions regarding these Terms, please contact the developer directly via the main channel (Email / GitHub).
 
-> Generated using Gemini 3.5 High & Proof by Owner
+> Generated using Gemini 3.5 Flash & Proof by Owner

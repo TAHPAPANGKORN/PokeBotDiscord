@@ -1,6 +1,6 @@
 # Privacy Policy (PokePoke)
 
-**Last Updated:** May 25, 2026
+**Last Updated:** May 27, 2026
 
 Your privacy is very important to us. This Privacy Policy describes how **PokePoke** ("the Bot") processes, handles, and protects user data. By adding the Bot to your Discord server or interacting with it, you consent to the data practices described in this policy.
 
@@ -38,4 +38,4 @@ We reserve the right to update this Privacy Policy at any time. The date of the 
 ### Contact
 If you have any questions about this Privacy Policy, please contact the developer via the main channels (Email / GitHub).
 
-> Generated using Gemini 3.5 High & Proof by Owner
+> Generated using Gemini 3.5 Flash & Proof by Owner
