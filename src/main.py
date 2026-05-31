@@ -32,6 +32,18 @@ async def on_ready():
     await bot.change_presence(activity=activity)
     synced = await bot.tree.sync()
     print(f'{len(synced)} command(s) Logged in as {bot.user}')
+    
+    print(f"\nConnected to {len(bot.guilds)} server(s):")
+    for guild in bot.guilds:
+        join_time_str = "Unknown"
+        if guild.me and guild.me.joined_at:
+            import pytz
+            bangkok_tz = pytz.timezone('Asia/Bangkok')
+            joined_at_local = guild.me.joined_at.astimezone(bangkok_tz)
+            join_time_str = joined_at_local.strftime('%Y-%m-%d %H:%M:%S')
+            
+        print(f"- {guild.name} (ID: {guild.id}, Members: {guild.member_count}, Joined: {join_time_str} UTC+7)")
+    print("-" * 30)
 
 
 server_on()
