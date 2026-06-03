@@ -158,7 +158,7 @@ class General(commands.Cog):
     # Slash Command: /tah
     @app_commands.command(name='tah', description='Call cheetah to your room')
     async def callTah(self, ctx: discord.Interaction):
-        tahId = int(os.environ.get('ownerID', '123123123'))
+        tahId = int(os.environ.get('OWNER_ID', '123123123'))
         tahMember = ctx.guild.get_member(tahId)
 
         await ctx.response.defer(ephemeral=True) 

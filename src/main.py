@@ -8,9 +8,9 @@ from dotenv import load_dotenv
 from myserver import server_on
 
 load_dotenv()
-TOKEN = os.environ.get('token')
+TOKEN = os.environ.get('TOKEN')
 
-bot = commands.Bot(command_prefix="\\", intents=discord.Intents.all(),help_command=None)
+bot = commands.Bot(command_prefix="\\", intents=discord.Intents.all(), help_command=None)
 status = "/help PokePoke"
 
 
@@ -24,6 +24,8 @@ async def load_extensions():
             print(f'Failed to load extension {ext}: {e}')
 
 bot.setup_hook = load_extensions
+
+
 
 @bot.event
 async def on_ready():
@@ -46,7 +48,7 @@ async def on_ready():
     print("-" * 30)
 
 
-server_on()
+server_on(bot)
 
 MAX_RETRIES = 10
 BASE_DELAY = 60  # Initial wait of 60 seconds
