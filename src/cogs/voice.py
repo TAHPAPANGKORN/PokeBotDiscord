@@ -16,7 +16,7 @@ class Voice(commands.Cog):
 
         if unit not in units:
             await ctx.response.defer(ephemeral=True)
-            await ctx.followup.send("❌ Invalid unit! Please use 's' for seconds, 'm' for minutes, or 'h' for hours.", ephemeral=True)
+            await ctx.followup.send("Invalid unit! Please use 's' for seconds, 'm' for minutes, or 'h' for hours.", ephemeral=True)
             return
         
         await ctx.response.defer(ephemeral=True)
