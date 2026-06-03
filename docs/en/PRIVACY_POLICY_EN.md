@@ -1,14 +1,15 @@
 # Privacy Policy (PokePoke)
 
-**Last Updated:** May 27, 2026
+**Last Updated:** June 3, 2026
 
 Your privacy is very important to us. This Privacy Policy describes how **PokePoke** ("the Bot") processes, handles, and protects user data. By adding the Bot to your Discord server or interacting with it, you consent to the data practices described in this policy.
 
 ### 1. Data We Process (What We Collect)
-PokePoke only accesses and processes data that is technically necessary to perform its core functions (such as voice channel movement and temporary voice state management):
+PokePoke only accesses and processes data that is technically necessary to perform its core functions (such as voice channel movement and temporary voice state management) and to support its administration via the dashboard:
 *   **Discord User IDs & Usernames:** To identify members who invoke commands, target members for movement (`/poke`), and manage temporary restrictions.
 *   **Guild (Server) IDs & Channel IDs:** To target the correct Discord servers and voice channels for member movement and command feedback.
 *   **Voice States:** To determine whether a user is currently in a voice channel, which channel they are in, and their mute/deafen status.
+*   **Guild Metadata for Dashboard API:** To display connection status and bot presence on the administrator's dashboard, we retrieve basic guild details (Guild Name, Guild ID, Member Count, and Guild Icon URL).
 
 ### 2. NO VOICE OR AUDIO RECORDING
 *   **CRITICAL POLICY:** Although PokePoke has access to voice-related permissions (such as moving and muting members), **the Bot DOES NOT listen to, stream, record, transmit, or store any audio, voice, or conversation data.** Your voice communications remain entirely private and are never processed by the Bot.
@@ -20,6 +21,7 @@ PokePoke only accesses and processes data that is technically necessary to perfo
 
 ### 4. Data Sharing & Third Parties
 *   **No Sale or Sharing:** We do not sell, trade, rent, or share any user or guild data with third parties.
+*   **Secured Dashboard API:** Basic guild metadata (names, IDs, member counts, and icon URLs) is transmitted over a secured HTTP endpoint (`/api/guilds`) protected by a secret API key to the bot owner's dashboard/frontend application for administrative display. No private text channels, user messages, or voice contents are transmitted or exposed.
 *   **Discord Infrastructure:** PokePoke operates by transmitting data through the official Discord API. By using the Bot, you also agree to be bound by the [Discord Privacy Policy](https://discord.com/privacy).
 
 ### 5. User Rights & Data Deletion

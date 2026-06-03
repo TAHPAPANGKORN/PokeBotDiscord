@@ -1,6 +1,6 @@
 # Terms of Service (PokePoke)
 
-**Last Updated:** May 27, 2026
+**Last Updated:** June 3, 2026
 
 Welcome to **PokePoke** ("the Bot"). By adding the Bot to your Discord server, executing its commands, or interacting with it in any way, you agree to comply with and be bound by these Terms of Service. If you do not agree to these terms, you must immediately remove the Bot from your server and cease all interaction with it.
 
@@ -10,7 +10,7 @@ Welcome to **PokePoke** ("the Bot"). By adding the Bot to your Discord server, e
 * **Discord Integration:** You must comply with all official [Discord Terms of Service](https://discord.com/terms) and [Discord Community Guidelines](https://discord.com/guidelines). Any violation of Discord's terms while using the Bot is a direct violation of these Terms.
 
 ### 2. Description of Service
-PokePoke is a Discord utility bot designed to facilitate voice channel interactions, such as moving members between channels (the `/poke` feature to wake up users), temporarily muting/deafening members, and other related guild utilities. We reserve the right to modify, update, suspend, or discontinue any feature or the entire Bot at any time without notice or liability.
+PokePoke is a Discord utility bot designed to facilitate voice channel interactions, such as moving members between channels (the `/poke` feature to wake up users), temporarily muting/deafening members, and other related guild utilities. The service also includes a secured web API endpoint (`/api/guilds`) designed to serve basic connection status metadata to the administrator's frontend dashboard. We reserve the right to modify, update, suspend, or discontinue any feature or the entire Bot at any time without notice or liability.
 
 ### 3. Permitted Use & Code of Conduct (No Loopholes)
 You agree **not** to abuse the Bot or use it to disrupt the experience of other Discord users. Specifically, the following conducts are strictly prohibited:
