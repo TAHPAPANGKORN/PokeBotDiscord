@@ -3,64 +3,101 @@ from discord.ext import commands
 from discord import app_commands
 import discord.utils
 import os
+from data.help_data import HELP_TEXTS, COMMANDS_METADATA
 
-baseColor = 0xECE7D9
+baseColor = 0x7669FD
 botLink = "https://discord.com/oauth2/authorize?client_id=1208764608727359601"
 youtubeLink = "https://youtu.be/CVENTfDYJRs?si=LM7d4s3YcyujXG-T"
 
-def get_embed(language='th'):
+def get_embed(language='th', bot_avatar_url=None):
     embedColor = baseColor
-    if language == 'th':
-        title = "🤖 Help Me! - คำสั่งบอท"
-        description = (
-            "## 📌 Prefix คำสั่ง:\n"
-            "`\\` = คำสั่งแบบเดิม\n"
-            "`/` = คำสั่งแบบ Slash\n\n"
-            "### 📎 คำสั่งแบบ Prefix (\\\\)  \n"
-            "**\\help** : แสดงคำแนะนำ\n"
-            "**\\stop** : หยุดการทำงาน\n\n"
-            "### ⚙️ Slash Commands (/) แนะนำ\n"
-            "**/help** : 📘 คำแนะนำ\n"
-            "**/poke** : 🔔 ปลุกเพื่อน\n"
-            "**/stop** : ⛔ หยุดบอท\n"
-            "**/invite** : 🔗 แชร์ลิงก์\n"
-            "**/micmute** : 🎤 ปิดไมค์ชั่วคราว\n"
-            "**/headphonemute** : 🎧 ปิดหูฟังชั่วคราว\n\n"
-            "### 📲 เมนูแอป\n"
-            "**🌀 Poke Until Stop** : ทำงานจนกว่าจะหยุด\n"
-            "**🛑 Stop Poke** : หยุดการทำงาน\n\n"
-            "### ⚠️ หมายเหตุ\n"
-            "หากผู้ถูก Poke ไม่เปิดแจ้งเตือน บอทอาจทำงานไม่สมบูรณ์"
-        )
-    else:
-        title = "🤖 Help Me! - Bot Commands"
-        description = (
-            "## 📌 Command Prefix:\n"
-            "`\\` = Traditional command\n"
-            "`/` = Slash command\n\n"
-            "### 📎 Prefix Commands (\\\\) \n"
-            "**\\help** : Show help info\n"
-            "**\\stop** : Stop bot action\n\n"
-            "### ⚙️ Slash Commands (/) RECOMMEND\n"
-            "**/help** : 📘 Help information\n"
-            "**/poke** : 🔔 Wake friends\n"
-            "**/stop** : ⛔ Stop bot\n"
-            "**/invite** : 🔗 Invite link\n"
-            "**/micmute** : 🎤 Mute mic temporarily\n"
-            "**/headphonemute** : 🎧 Mute headphones temporarily\n\n"
-            "### 📲 App Menu\n"
-            "**🌀 Poke Until Stop** : Poke until stopped\n"
-            "**🛑 Stop Poke** : Stop poking\n\n"
-            "### ⚠️ Note\n"
-            "If the user has notifications off, it may not work properly."
-        )
-
-    return discord.Embed(
-        title=title,
+    texts = HELP_TEXTS.get(language, HELP_TEXTS['en'])
+    
+    # Build description dynamically
+    description_parts = [texts['description_header']]
+    
+    categories = ['prefix', 'slash', 'context']
+    for cat in categories:
+        description_parts.append(texts['category_headers'][cat])
+        
+        # Filter commands of this category
+        cat_commands = [c for c in COMMANDS_METADATA if c['type'] == cat]
+        for cmd in cat_commands:
+            emoji = cmd.get('emoji', '')
+            emoji_str = f"{emoji} " if emoji else ""
+            name = cmd['name']
+            desc = cmd['description'].get(language, cmd['description']['en'])
+            
+            # Format command based on type
+            if cat == 'prefix':
+                formatted_cmd = f"**\\{name}** : {emoji_str}{desc}"
+            elif cat == 'slash':
+                formatted_cmd = f"**/{name}** : {emoji_str}{desc}"
+            else: # context
+                formatted_cmd = f"**{name}** : {emoji_str}{desc}"
+                
+            description_parts.append(formatted_cmd)
+        description_parts.append("") # blank line for spacing
+        
+    # Add Note section
+    description_parts.append(f"### {texts['note_title']}")
+    description_parts.append(texts['note_description'])
+    
+    description = "\n".join(description_parts)
+    
+    embed = discord.Embed(
+        title=texts['title'],
         description=description,
         color=embedColor,
         timestamp=discord.utils.utcnow()
     )
+    
+    if bot_avatar_url:
+        embed.set_thumbnail(url=bot_avatar_url)
+        
+    embed.set_footer(text=texts['footer_text'])
+    return embed
+
+
+class HelpView(discord.ui.View):
+    def __init__(self, current_lang='en', bot_avatar_url=None):
+        super().__init__(timeout=180)
+        self.current_lang = current_lang
+        self.bot_avatar_url = bot_avatar_url
+        self.update_buttons()
+
+    def update_buttons(self):
+        self.clear_items()
+        
+        # Language switcher buttons
+        th_style = discord.ButtonStyle.primary if self.current_lang == 'th' else discord.ButtonStyle.secondary
+        en_style = discord.ButtonStyle.primary if self.current_lang == 'en' else discord.ButtonStyle.secondary
+        
+        th_button = discord.ui.Button(label="ภาษาไทย", emoji="🇹🇭", style=th_style, custom_id="lang_th")
+        en_button = discord.ui.Button(label="English", emoji="🇬🇧", style=en_style, custom_id="lang_en")
+        
+        th_button.callback = self.lang_th_callback
+        en_button.callback = self.lang_en_callback
+        
+        self.add_item(th_button)
+        self.add_item(en_button)
+        
+        # Action/Link buttons
+        invite_button = discord.ui.Button(label="Invite Bot", style=discord.ButtonStyle.link, url=botLink)
+        
+        self.add_item(invite_button)
+
+    async def lang_th_callback(self, interaction: discord.Interaction):
+        self.current_lang = 'th'
+        self.update_buttons()
+        embed = get_embed('th', self.bot_avatar_url)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    async def lang_en_callback(self, interaction: discord.Interaction):
+        self.current_lang = 'en'
+        self.update_buttons()
+        embed = get_embed('en', self.bot_avatar_url)
+        await interaction.response.edit_message(embed=embed, view=self)
 
 
 class General(commands.Cog):
@@ -69,51 +106,16 @@ class General(commands.Cog):
 
     @commands.command(aliases=['help', 'help_me', 'hp'])
     async def _help(self, ctx):
-        embed = get_embed('en')  
-
-        async def select_callback(interaction: discord.Interaction):
-            selected_lang = select.values[0]
-            new_embed = get_embed(selected_lang)
-            await interaction.response.edit_message(embed=new_embed, view=view)
-
-        # สร้าง dropdown menu
-        select = discord.ui.Select(
-            placeholder="🔄 เลือกภาษา / Choose Language",
-            options=[
-                discord.SelectOption(label="ไทย", value="th", emoji="🇹🇭", description="ช่วยเหลือภาษาไทย"),
-                discord.SelectOption(label="English", value="en", emoji="🇬🇧", description="Help in English")
-            ]
-        )
-        select.callback = select_callback
-
-        # สร้าง View แล้วใส่ select เข้าไป
-        view = discord.ui.View()
-        view.add_item(select)
-
-        # ส่งข้อความพร้อม embed และ view
+        avatar_url = self.bot.user.avatar.url if self.bot.user.avatar else None
+        embed = get_embed('en', avatar_url)
+        view = HelpView(current_lang='en', bot_avatar_url=avatar_url)
         await ctx.send(embed=embed, view=view)
 
     @app_commands.command(name="help", description="Show help information")
     async def help(self, interaction: discord.Interaction):
-        embed = get_embed('en')  
-
-        async def select_callback(select_interaction: discord.Interaction):
-            selected_lang = select.values[0]
-            new_embed = get_embed(selected_lang)
-            await select_interaction.response.edit_message(embed=new_embed, view=view)
-
-        select = discord.ui.Select(
-            placeholder="🔄 เลือกภาษา / Choose Language",
-            options=[
-                discord.SelectOption(label="ไทย", value="th", emoji="🇹🇭", description="คำสั่งช่วยเหลือภาษาไทย"),
-                discord.SelectOption(label="English", value="en", emoji="🇬🇧", description="Help commands in English")
-            ]
-        )
-        select.callback = select_callback
-
-        view = discord.ui.View()
-        view.add_item(select)
-
+        avatar_url = self.bot.user.avatar.url if self.bot.user.avatar else None
+        embed = get_embed('en', avatar_url)
+        view = HelpView(current_lang='en', bot_avatar_url=avatar_url)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
     @app_commands.command(name='invite', description='Get Link To Invite')
