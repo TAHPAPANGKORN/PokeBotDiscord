@@ -103,6 +103,14 @@ COMMANDS_METADATA = [
             'en': 'Deafen headphone of a member temporarily (s/m/h)'
         }
     },
+    {
+        'name': 'deafen',
+        'type': 'slash',
+        'description': {
+            'th': 'ปิดหูฟังเสียงและไมโครโฟนของสมาชิกชั่วคราว (กำหนดเวลาและหน่วยวินาที/นาที/ชั่วโมง ได้)',
+            'en': 'Deafen headphone and mute microphone of a member temporarily (s/m/h)'
+        }
+    },
 
     # Context Menu (Apps)
     {

@@ -61,5 +61,30 @@ class Voice(commands.Cog):
             await ctx.followup.send(f"{member.mention} not in a voice room", ephemeral=True)
 
 
+    @app_commands.command(name="deafen", description="Set time to deafen.")
+    async def deafenAllTime(self, ctx: discord.Interaction, member: discord.Member, time: int, unit: str = 's'):  
+        now = datetime.now(pytz.timezone('Asia/Bangkok'))
+        units = {'s': 'seconds', 'm': 'minutes', 'h': 'hours'}
+
+        if unit not in units:
+            await ctx.response.defer(ephemeral=True)
+            await ctx.followup.send("Invalid unit! Please use 's' for seconds, 'm' for minutes, or 'h' for hours.", ephemeral=True)
+            return
+        
+        await ctx.response.defer(ephemeral=True)
+        targetTime = now + timedelta(**{units[unit]: time})
+
+        if member.voice:
+            try:
+                await member.edit(deafen=True, mute=True)
+                await ctx.followup.send(f"You deafen {member.mention} until {targetTime.strftime('%H:%M:%S')} UTC+7", ephemeral=True)
+                await discord.utils.sleep_until(targetTime)
+                await member.edit(deafen=False, mute=False)
+                await ctx.followup.send(f"Undeafen! {member.mention}", ephemeral=True)
+            except Exception as e:
+                await ctx.followup.send(f"Error! {e}", ephemeral=True)
+        else:
+            await ctx.followup.send(f"{member.mention} not in a voice room", ephemeral=True)
+
 async def setup(bot):
     await bot.add_cog(Voice(bot))
