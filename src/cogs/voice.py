@@ -10,55 +10,79 @@ class Voice(commands.Cog):
 
     # Slash Command: /micmute
     @app_commands.command(name="micmute", description="Set time to mute microphone")
-    async def muteTime(self, ctx: discord.Interaction, member: discord.Member, time: int, unit: str = 's'):  
+    @app_commands.choices(unit=[
+        app_commands.Choice(name="Seconds", value="s"),
+        app_commands.Choice(name="Minutes", value="m"),
+        app_commands.Choice(name="Hours", value="h")
+    ])
+    async def micmute_command(self, interaction: discord.Interaction, member: discord.Member, duration: int, unit: str):  
+        await interaction.response.defer(ephemeral=True)
+
         now = datetime.now(pytz.timezone('Asia/Bangkok'))
         units = {'s': 'seconds', 'm': 'minutes', 'h': 'hours'}
+        target_time = now + timedelta(**{units[unit]: duration})
 
-        if unit not in units:
-            await ctx.response.defer(ephemeral=True)
-            await ctx.followup.send("Invalid unit! Please use 's' for seconds, 'm' for minutes, or 'h' for hours.", ephemeral=True)
+        if not member.voice:
+            await interaction.followup.send(f"{member.mention} is not in a voice channel.", ephemeral=True)
             return
-        
-        await ctx.response.defer(ephemeral=True)
-        targetTime = now + timedelta(**{units[unit]: time})
 
-        if member.voice:
-            try:
-                await member.edit(mute=True)
-                await ctx.followup.send(f"You mute {member.mention} until {targetTime.strftime('%H:%M:%S')} UTC+7", ephemeral=True)
-                await discord.utils.sleep_until(targetTime)
+        try:
+            await member.edit(mute=True)
+            await interaction.followup.send(
+                f"You muted {member.mention} until {target_time.strftime('%H:%M:%S')} UTC+7", 
+                ephemeral=True
+            )
+            
+            await discord.utils.sleep_until(target_time)
+            
+            if member.voice:
                 await member.edit(mute=False)
-                await ctx.followup.send(f"Unmute! {member.mention}", ephemeral=True)
-            except Exception as e:
-                await ctx.followup.send(f"Error! {e}", ephemeral=True)
-        else:
-            await ctx.followup.send(f"{member.mention} not in a voice room", ephemeral=True)
+                await interaction.followup.send(f"Unmute! {member.mention}", ephemeral=True)
+            else:
+                await interaction.followup.send(f"{member.mention} left the voice channel, timer cleared.", ephemeral=True)
+
+        except discord.HTTPException as e:
+            await interaction.followup.send(f"Failed to edit member: {e.text}", ephemeral=True)
+        except Exception as e:
+            await interaction.followup.send(f"An unexpected error occurred: {e}", ephemeral=True)
 
     # Slash Command: /headphonemute
     @app_commands.command(name="earmute", description="Set time to mute headphone.")
-    async def deafenTime(self, ctx: discord.Interaction, member: discord.Member, time: int, unit: str = 's'):  
+    @app_commands.choices(unit=[
+        app_commands.Choice(name="Seconds", value="s"),
+        app_commands.Choice(name="Minutes", value="m"),
+        app_commands.Choice(name="Hours", value="h")
+    ])
+    async def earmute_command(self, interaction: discord.Interaction, member: discord.Member, duration: int, unit: str):  
+        await interaction.response.defer(ephemeral=True)
+
         now = datetime.now(pytz.timezone('Asia/Bangkok'))
         units = {'s': 'seconds', 'm': 'minutes', 'h': 'hours'}
+        target_time = now + timedelta(**{units[unit]: duration})
 
-        if unit not in units:
-            await ctx.response.defer(ephemeral=True)
-            await ctx.followup.send("Invalid unit! Please use 's' for seconds, 'm' for minutes, or 'h' for hours.", ephemeral=True)
+        if not member.voice:
+            await interaction.followup.send(f"{member.mention} is not in a voice channel.", ephemeral=True)
             return
-        
-        await ctx.response.defer(ephemeral=True)
-        targetTime = now + timedelta(**{units[unit]: time})
 
-        if member.voice:
-            try:
-                await member.edit(deafen=True)
-                await ctx.followup.send(f"You mute {member.mention} until {targetTime.strftime('%H:%M:%S')} UTC+7", ephemeral=True)
-                await discord.utils.sleep_until(targetTime)
+        try:
+            await member.edit(deafen=True)
+            await interaction.followup.send(
+                f"You earmuted {member.mention} until {target_time.strftime('%H:%M:%S')} UTC+7", 
+                ephemeral=True
+            )
+            
+            await discord.utils.sleep_until(target_time)
+            
+            if member.voice:
                 await member.edit(deafen=False)
-                await ctx.followup.send(f"Unmute! {member.mention}", ephemeral=True)
-            except Exception as e:
-                await ctx.followup.send(f"Error! {e}", ephemeral=True)
-        else:
-            await ctx.followup.send(f"{member.mention} not in a voice room", ephemeral=True)
+                await interaction.followup.send(f"Unearmute! {member.mention}", ephemeral=True)
+            else:
+                await interaction.followup.send(f"{member.mention} left the voice channel, timer cleared.", ephemeral=True)
+
+        except discord.HTTPException as e:
+            await interaction.followup.send(f"Failed to edit member: {e.text}", ephemeral=True)
+        except Exception as e:
+            await interaction.followup.send(f"An unexpected error occurred: {e}", ephemeral=True)
 
 
     @app_commands.command(name="muteboth", description="Set time to deafen a member.")
@@ -67,12 +91,12 @@ class Voice(commands.Cog):
         app_commands.Choice(name="Minutes", value="m"),
         app_commands.Choice(name="Hours", value="h")
     ])
-    async def deafen_command(self, interaction: discord.Interaction, member: discord.Member, time: int, unit: str = 's'):
+    async def muteboth_command(self, interaction: discord.Interaction, member: discord.Member, duration: int, unit: str):
         await interaction.response.defer(ephemeral=True)
 
         now = datetime.now(pytz.timezone('Asia/Bangkok'))
         units = {'s': 'seconds', 'm': 'minutes', 'h': 'hours'}
-        target_time = now + timedelta(**{units[unit]: time})
+        target_time = now + timedelta(**{units[unit]: duration})
 
         if not member.voice:
             await interaction.followup.send(f"{member.mention} is not in a voice channel.", ephemeral=True)
@@ -98,6 +122,8 @@ class Voice(commands.Cog):
         except Exception as e:
             await interaction.followup.send(f"An unexpected error occurred: {e}", ephemeral=True)
 
+
+    # mute choice
     @app_commands.command(name="mute", description="Mute or Deafen a member for a specific duration.")
     @app_commands.choices(action=[
         app_commands.Choice(name="Microphone Only (Mute)", value="mute"),
@@ -114,7 +140,7 @@ class Voice(commands.Cog):
         interaction: discord.Interaction, 
         member: discord.Member, 
         action: str, 
-        time: int, 
+        duration: int, 
         unit: str
     ):
         await interaction.response.defer(ephemeral=True)
@@ -125,7 +151,7 @@ class Voice(commands.Cog):
 
         now = datetime.now(pytz.timezone('Asia/Bangkok'))
         units = {'s': 'seconds', 'm': 'minutes', 'h': 'hours'}
-        target_time = now + timedelta(**{units[unit]: time})
+        target_time = now + timedelta(**{units[unit]: duration})
 
         is_mute = action in ['mute', 'both']
         is_deafen = action in ['deafen', 'both']
