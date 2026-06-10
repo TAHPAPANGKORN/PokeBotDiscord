@@ -96,14 +96,29 @@ COMMANDS_METADATA = [
         }
     },
     {
-        'name': 'headphonemute',
+        'name': 'earmute',
         'type': 'slash',
         'description': {
             'th': 'ปิดหูฟังเสียงของสมาชิกชั่วคราว (กำหนดเวลาและหน่วยวินาที/นาที/ชั่วโมง ได้)',
             'en': 'Deafen headphone of a member temporarily (s/m/h)'
         }
     },
-
+    {
+        'name': 'muteboth',
+        'type': 'slash',
+        'description': {
+            'th': 'ปิดหูฟังเสียงและไมโครโฟนของสมาชิกชั่วคราว (กำหนดเวลาและหน่วยวินาที/นาที/ชั่วโมง ได้)',
+            'en': 'Deafen headphone and mute microphone of a member temporarily (s/m/h)'
+        }
+    },
+    {
+        'name': 'mute',
+        'type': 'slash',
+        'description': {
+            'th': 'เลือกปิดไมโครโฟน หูฟัง หรือทั้งสองอย่างชั่วคราว (กำหนดเวลาและหน่วยวินาที/นาที/ชั่วโมง ได้)',
+            'en': 'Mute mic, deafen headphones, or both for a specific duration (s/m/h)'
+        }
+    },
     # Context Menu (Apps)
     {
         'name': 'Poke Until Stop',
