@@ -193,13 +193,17 @@ class Poke(commands.Cog):
 
     # Slash Command: /stop
     @app_commands.command(name='stop', description='Stop Move Some Member')
-    async def stop_slash(self, ctx: discord.Interaction):
-        await ctx.response.defer(ephemeral=True)
+    @app_commands.describe(
+        member='The member to stop poking'
+    )
+    async def stop_slash(self, interaction: discord.Interaction, member: discord.Member):
+        await interaction.response.defer(ephemeral=True)
+        self.userStop = member.name
         self.stopLoop = True
-        if self.nameMember:
-            await ctx.followup.send(f'You stop poke {self.nameMember}.', ephemeral=True)
+        if self.nameMember == self.userStop:
+            await interaction.followup.send(f'You stop poke {self.nameMember}.', ephemeral=True)
         else:
-            await ctx.followup.send('There is no trigger currently operating.', ephemeral=True)
+            await interaction.followup.send('There is no trigger currently operating.', ephemeral=True)
 
     # Context Menu: Stop Poke (คลิกขวาเพื่อหยุด)
     async def menuStop(self, ctx: discord.Interaction, user: discord.User):
