@@ -7,6 +7,9 @@ class Poke(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.active_pokes = {}
+        self.guild_locks = {}
+        self.move_queue = asyncio.Queue()
+        self.worker_task = asyncio.create_task(self.move_worker())
 
         self.menu_poke = app_commands.ContextMenu(
             name="Poke Until Stop",
@@ -22,17 +25,93 @@ class Poke(commands.Cog):
     async def cog_unload(self):
         self.bot.tree.remove_command(self.menu_poke.name, type=self.menu_poke.type)
         self.bot.tree.remove_command(self.menu_stop.name, type=self.menu_stop.type)
+        if self.worker_task:
+            self.worker_task.cancel()
+
+    async def move_worker(self):
+        while True:
+            try:
+                member, channel, future = await self.move_queue.get()
+                
+                if member.voice and member.voice.channel != channel:
+                    try:
+                        await member.move_to(channel)
+                        future.set_result(True)
+                    except Exception as e:
+                        future.set_exception(e)
+                else:
+                    future.set_result(False)
+                    
+                self.move_queue.task_done()
+                await asyncio.sleep(0.35)
+                
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                pass
+
+    async def queue_move(self, member: discord.Member, channel: discord.VoiceChannel):
+        future = asyncio.get_running_loop().create_future()
+        await self.move_queue.put((member, channel, future))
+        return await future
+
+    def get_guild_lock(self, guild_id: int) -> asyncio.Lock:
+        if guild_id not in self.guild_locks:
+            self.guild_locks[guild_id] = asyncio.Lock()
+        return self.guild_locks[guild_id]
+
+    async def get_or_create_poke_channels(self, guild: discord.Guild):
+        async with self.get_guild_lock(guild.id):
+            room1_name = "🔔 Poke room 1"
+            room2_name = "🔔 Poke room 2"
+            
+            channel1 = discord.utils.get(guild.voice_channels, name=room1_name)
+            channel2 = discord.utils.get(guild.voice_channels, name=room2_name)
+            
+            if not channel1:
+                channel1 = await guild.create_voice_channel(room1_name)
+            if not channel2:
+                channel2 = await guild.create_voice_channel(room2_name)
+                
+            return channel1, channel2
+
+    async def cleanup_guild_poke_channels(self, guild: discord.Guild):
+        async with self.get_guild_lock(guild.id):
+            active_in_guild = any(
+                state['member'].guild.id == guild.id 
+                for state in self.active_pokes.values()
+            )
+            if not active_in_guild:
+                room1_name = "🔔 Poke room 1"
+                room2_name = "🔔 Poke room 2"
+                channel1 = discord.utils.get(guild.voice_channels, name=room1_name)
+                channel2 = discord.utils.get(guild.voice_channels, name=room2_name)
+                
+                if channel1:
+                    try:
+                        await channel1.delete()
+                    except:
+                        pass
+                if channel2:
+                    try:
+                        await channel2.delete()
+                    except:
+                        pass
 
     # slash command
     @app_commands.command(name='poke', description='🔔 Wake someone up by moving them between voice channels!')
-    async def poke_command(self, interaction: discord.Interaction, member: discord.Member, number: int):
+    @app_commands.describe(
+        member='member that you want to poke',
+        rounds='number of rounds you want to poke'
+    )
+    async def poke_command(self, interaction: discord.Interaction, member: discord.Member, rounds: int):
         await interaction.response.defer(ephemeral=True)
         
         if member.id in self.active_pokes:
             await interaction.followup.send(f"{member.mention} is already being poked!", ephemeral=True)
             return
     
-        if number <= 0:
+        if rounds <= 0:
             await interaction.followup.send("Please specify the number of rounds greater than 0!", ephemeral=True)
             return
         if not member.voice:
@@ -45,28 +124,24 @@ class Poke(commands.Cog):
         }
 
         originalChannel = member.voice.channel
-        channel1 = None
-        channel2 = None
         try:
-            await interaction.followup.send(f"{interaction.user.name} move {member.mention} {number} times", ephemeral=True)  # Initial response
-            room1 = "🔔 Poke room 1"
-            room2 = "🔔 Poke room 2"
-            channel1 = await interaction.guild.create_voice_channel(room1)
-            channel2 = await interaction.guild.create_voice_channel(room2)
+            await interaction.followup.send(f"{interaction.user.name} move {member.mention} {rounds} times", ephemeral=True)  # Initial response
+            channel1, channel2 = await self.get_or_create_poke_channels(interaction.guild)
 
-            for attempt in range(number):
+            for attempt in range(rounds):
                 state = self.active_pokes.get(member.id)
                 if state and not state['stop_loop']:
                     await asyncio.gather(
                         member.send(f"{interaction.user.mention} Calling you for the {attempt+1} time"),
-                        member.move_to(channel1)
+                        self.queue_move(member, channel1)
                     )
-                    await asyncio.sleep(1)  # Wait for 1 second
-                    await member.move_to(channel2)
+                    await asyncio.sleep(1)  
+                    await self.queue_move(member, channel2)
+                    await asyncio.sleep(1)  
                     
             # Move back to the original channel
             await member.send(f"{member.mention} We tried to wake you up!")
-            await member.move_to(originalChannel)
+            await self.queue_move(member, originalChannel)
         except Forbidden:
             await interaction.followup.send(f"You must have given the bot permission in your private room.", ephemeral=True)
             
@@ -74,13 +149,12 @@ class Poke(commands.Cog):
             existingCannel = None
         
             for channel in interaction.guild.voice_channels:
-                # Check if the bot has permission to move members in this channel
-                if channel.permissions_for(interaction.guild.me).move_members:
+                if channel.permissions_for(interaction.guild.me).move_members and channel.name not in ["🔔 Poke room 1", "🔔 Poke room 2"]:
                     existingCannel = channel
                     break
 
-            if existingCannel and existingCannel.name not in [room1, room2]:
-                await member.move_to(existingCannel)
+            if existingCannel:
+                await self.queue_move(member, existingCannel)
                 await interaction.followup.send(f"{member.mention} has been moved to {existingCannel.name}.", ephemeral=True)
                 return
             else:
@@ -91,16 +165,7 @@ class Poke(commands.Cog):
             await interaction.followup.send(f"{member.mention} Leave a poke room", ephemeral=True)
         finally:
             self.active_pokes.pop(member.id, None)
-            if channel1:
-                try:
-                    await channel1.delete()
-                except:
-                    pass
-            if channel2:
-                try:
-                    await channel2.delete()
-                except:
-                    pass
+            await self.cleanup_guild_poke_channels(interaction.guild)
 
     # context menu
     async def poke_menu(self, ctx: discord.Interaction, member: discord.Member):
@@ -124,23 +189,19 @@ class Poke(commands.Cog):
         }
 
         originalChannel = member.voice.channel
-        channel1 = None
-        channel2 = None
         try:
             await ctx.followup.send(f"{ctx.user.name} move {member.mention} until stop")  # Initial response
-            room1 = "🔔 Poke room 1"
-            room2 = "🔔 Poke room 2"
-            channel1 = await ctx.guild.create_voice_channel(room1)
-            channel2 = await ctx.guild.create_voice_channel(room2)
+            channel1, channel2 = await self.get_or_create_poke_channels(ctx.guild)
 
             count = 1
             while True:
                 await asyncio.gather(
                     member.send(f"{ctx.user.mention} Calling you for the {count} time"),
-                    member.move_to(channel1)
+                    self.queue_move(member, channel1)
                 )
-                await asyncio.sleep(1)  # Wait for 1 second
-                await member.move_to(channel2)
+                await asyncio.sleep(1)  
+                await self.queue_move(member, channel2)
+                await asyncio.sleep(1)  
                 count += 1
                 state = self.active_pokes.get(member.id)
                 if not state or state['stop_loop'] or count >= 500:
@@ -149,7 +210,7 @@ class Poke(commands.Cog):
 
             # Move back to the original channel
             await member.send(f"{member.mention} We tried to wake you up!")
-            await member.move_to(originalChannel)
+            await self.queue_move(member, originalChannel)
         except Forbidden:
             await ctx.followup.send(f"You must have given the bot permission in your private room.", ephemeral=True)
             
@@ -157,12 +218,12 @@ class Poke(commands.Cog):
             existingCannel = None
         
             for channel in ctx.guild.voice_channels:
-                if channel.permissions_for(ctx.guild.me).move_members:
+                if channel.permissions_for(ctx.guild.me).move_members and channel.name not in ["🔔 Poke room 1", "🔔 Poke room 2"]:
                     existingCannel = channel
                     break
 
-            if existingCannel and existingCannel.name not in [room1, room2]:
-                await member.move_to(existingCannel)
+            if existingCannel:
+                await self.queue_move(member, existingCannel)
                 await ctx.followup.send(f"{member.mention} has been moved to {existingCannel.name}.", ephemeral=True)
                 return
             else:
@@ -173,16 +234,7 @@ class Poke(commands.Cog):
             await ctx.followup.send(f"{member.mention} Leave a poke room", ephemeral=True)
         finally:
             self.active_pokes.pop(member.id, None)
-            if channel1:
-                try:
-                    await channel1.delete()
-                except:
-                    pass
-            if channel2:
-                try:
-                    await channel2.delete()
-                except:
-                    pass
+            await self.cleanup_guild_poke_channels(ctx.guild)
 
 
     # Prefix Command: \stop [member_name]
