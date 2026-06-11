@@ -104,8 +104,9 @@ class Poke(commands.Cog):
                         member.send(f"{interaction.user.mention} Calling you for the {attempt+1} time"),
                         member.move_to(channel1)
                     )
-                    await asyncio.sleep(1)  # Wait for 1 second
+                    await asyncio.sleep(1)  
                     await member.move_to(channel2)
+                    await asyncio.sleep(1)  
                     
             # Move back to the original channel
             await member.send(f"{member.mention} We tried to wake you up!")
@@ -167,8 +168,9 @@ class Poke(commands.Cog):
                     member.send(f"{ctx.user.mention} Calling you for the {count} time"),
                     member.move_to(channel1)
                 )
-                await asyncio.sleep(1)  # Wait for 1 second
+                await asyncio.sleep(1)  
                 await member.move_to(channel2)
+                await asyncio.sleep(1)  
                 count += 1
                 state = self.active_pokes.get(member.id)
                 if not state or state['stop_loop'] or count >= 500:
