@@ -25,14 +25,14 @@ class Poke(commands.Cog):
 
     # slash command
     @app_commands.command(name='poke', description='🔔 Wake someone up by moving them between voice channels!')
-    async def poke_command(self, interaction: discord.Interaction, member: discord.Member, number: int):
+    async def poke_command(self, interaction: discord.Interaction, member: discord.Member, rounds: int):
         await interaction.response.defer(ephemeral=True)
         
         if member.id in self.active_pokes:
             await interaction.followup.send(f"{member.mention} is already being poked!", ephemeral=True)
             return
     
-        if number <= 0:
+        if rounds <= 0:
             await interaction.followup.send("Please specify the number of rounds greater than 0!", ephemeral=True)
             return
         if not member.voice:
@@ -48,13 +48,13 @@ class Poke(commands.Cog):
         channel1 = None
         channel2 = None
         try:
-            await interaction.followup.send(f"{interaction.user.name} move {member.mention} {number} times", ephemeral=True)  # Initial response
+            await interaction.followup.send(f"{interaction.user.name} move {member.mention} {rounds} times", ephemeral=True)  # Initial response
             room1 = "🔔 Poke room 1"
             room2 = "🔔 Poke room 2"
             channel1 = await interaction.guild.create_voice_channel(room1)
             channel2 = await interaction.guild.create_voice_channel(room2)
 
-            for attempt in range(number):
+            for attempt in range(rounds):
                 state = self.active_pokes.get(member.id)
                 if state and not state['stop_loop']:
                     await asyncio.gather(
