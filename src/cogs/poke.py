@@ -9,8 +9,8 @@ class Poke(commands.Cog):
         self.stopLoop = None
         self.nameMember = None
         self.userStop = None
+        self.active_member = None
 
-        # ลงทะเบียน Context Menu ในห้องเครื่องของ Cog
         self.menu_wake_move = app_commands.ContextMenu(
             name="Poke Until Stop",
             callback=self.menuWakeMove
@@ -23,7 +23,6 @@ class Poke(commands.Cog):
         self.bot.tree.add_command(self.menu_stop)
 
     async def cog_unload(self):
-        # ลบคำสั่งเมื่อ Cog ถูกถอดออกเพื่อป้องกันเมนูซ้ำซ้อน
         self.bot.tree.remove_command(self.menu_wake_move.name, type=self.menu_wake_move.type)
         self.bot.tree.remove_command(self.menu_stop.name, type=self.menu_stop.type)
 
@@ -31,7 +30,7 @@ class Poke(commands.Cog):
     @app_commands.command(name='poke', description='🔔 Wake someone up by moving them between voice channels!')
     async def wakeMove(self, ctx: discord.Interaction, member: discord.Member, number: int):
         self.nameMember = member.name
-        # Acknowledge the interaction immediately
+        self.active_member = member
         await ctx.response.defer(ephemeral=True)
     
         if number <= 0:
@@ -77,7 +76,6 @@ class Poke(commands.Cog):
                     existingCannel = channel
                     break
 
-            #existingCannel always true 
             if existingCannel and existingCannel.name not in [room1, room2]:
                 await member.move_to(existingCannel)
                 await ctx.followup.send(f"{member.mention} has been moved to {existingCannel.name}.", ephemeral=True)
@@ -91,6 +89,9 @@ class Poke(commands.Cog):
         finally:
             # Clean up channels
             self.stopLoop = None
+            self.active_member = None
+            self.nameMember = None
+            self.userStop = None
             if channel1:
                 try:
                     await channel1.delete()
@@ -102,12 +103,12 @@ class Poke(commands.Cog):
                 except:
                     pass
 
-
+    # context menu
     async def menuWakeMove(self, ctx: discord.Interaction, member: discord.Member):
         number = 4
         self.nameMember = member.name
-
-        # Acknowledge the interaction immediately
+        self.active_member = member
+    
         await ctx.response.defer(ephemeral=True)
     
         if number <= 0:
@@ -151,12 +152,10 @@ class Poke(commands.Cog):
             existingCannel = None
         
             for channel in ctx.guild.voice_channels:
-                # Check if the bot has permission to move members in this channel
                 if channel.permissions_for(ctx.guild.me).move_members:
                     existingCannel = channel
                     break
 
-            #existingCannel always true 
             if existingCannel and existingCannel.name not in [room1, room2]:
                 await member.move_to(existingCannel)
                 await ctx.followup.send(f"{member.mention} has been moved to {existingCannel.name}.", ephemeral=True)
@@ -168,8 +167,10 @@ class Poke(commands.Cog):
         except Exception as e:
             await ctx.followup.send(f"{member.mention} Leave a poke room", ephemeral=True)
         finally:
-            # Clean up channels
             self.stopLoop = None
+            self.active_member = None
+            self.nameMember = None
+            self.userStop = None
             if channel1:
                 try:
                     await channel1.delete()
@@ -186,8 +187,9 @@ class Poke(commands.Cog):
     @commands.command()
     async def stop(self, ctx):
         self.stopLoop = True
-        if self.nameMember:
-            await ctx.send(f'You stop poke {self.nameMember}.')
+        if self.active_member:
+            self.userStop = self.active_member
+            await ctx.send(f'You stop poke {self.active_member.name}.')
         else:
             await ctx.send('There is no trigger currently operating.')
 
@@ -196,24 +198,32 @@ class Poke(commands.Cog):
     @app_commands.describe(
         member='The member to stop poking'
     )
-    async def stop_slash(self, interaction: discord.Interaction, member: discord.Member):
+    async def stop_slash(self, interaction: discord.Interaction, member: str):
         await interaction.response.defer(ephemeral=True)
-        self.userStop = member.name
-        self.stopLoop = True
-        if self.nameMember == self.userStop:
-            await interaction.followup.send(f'You stop poke {self.nameMember}.', ephemeral=True)
+        if self.active_member and self.active_member.name == member:
+            self.userStop = self.active_member
+            self.stopLoop = True
+            await interaction.followup.send(f'You stop poke {self.active_member.name}.', ephemeral=True)
         else:
-            await interaction.followup.send('There is no trigger currently operating.', ephemeral=True)
+            await interaction.followup.send('There is no trigger currently operating for this member.', ephemeral=True)
 
-    # Context Menu: Stop Poke (คลิกขวาเพื่อหยุด)
+    @stop_slash.autocomplete('member')
+    async def stop_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+        if self.active_member and current.lower() in self.active_member.name.lower():
+            return [
+                app_commands.Choice(name=self.active_member.name, value=self.active_member.name)
+            ]
+        return []
+
+    # Context Menu: Stop Poke 
     async def menuStop(self, ctx: discord.Interaction, user: discord.User):
         await ctx.response.defer(ephemeral=True)
-        self.userStop = user
-        self.stopLoop = True
-        if self.nameMember == self.userStop:
-            await ctx.followup.send(f'You stop poke {self.nameMember}.', ephemeral=True)
+        if self.active_member and self.active_member.id == user.id:
+            self.userStop = user
+            self.stopLoop = True
+            await ctx.followup.send(f'You stop poke {self.active_member.name}.', ephemeral=True)
         else:
-            await ctx.followup.send('Please press stop on the person being poke.', ephemeral=True)
+            await ctx.followup.send('Please press stop on the person being poked.', ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(Poke(bot))
