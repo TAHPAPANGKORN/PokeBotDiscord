@@ -6,10 +6,7 @@ import asyncio
 class Poke(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.stopLoop = None
-        self.nameMember = None
-        self.userStop = None
-        self.active_member = None
+        self.active_pokes = {}
 
         self.menu_poke = app_commands.ContextMenu(
             name="Poke Until Stop",
@@ -29,9 +26,11 @@ class Poke(commands.Cog):
     # slash command
     @app_commands.command(name='poke', description='🔔 Wake someone up by moving them between voice channels!')
     async def poke_command(self, interaction: discord.Interaction, member: discord.Member, number: int):
-        self.nameMember = member.name
-        self.active_member = member
         await interaction.response.defer(ephemeral=True)
+        
+        if member.id in self.active_pokes:
+            await interaction.followup.send(f"{member.mention} is already being poked!", ephemeral=True)
+            return
     
         if number <= 0:
             await interaction.followup.send("Please specify the number of rounds greater than 0!", ephemeral=True)
@@ -39,6 +38,11 @@ class Poke(commands.Cog):
         if not member.voice:
             await interaction.followup.send(f"{member.mention} Not In Voice Channel!", ephemeral=True)
             return
+
+        self.active_pokes[member.id] = {
+            'member': member,
+            'stop_loop': False
+        }
 
         originalChannel = member.voice.channel
         channel1 = None
@@ -51,7 +55,8 @@ class Poke(commands.Cog):
             channel2 = await interaction.guild.create_voice_channel(room2)
 
             for attempt in range(number):
-                if not self.stopLoop:
+                state = self.active_pokes.get(member.id)
+                if state and not state['stop_loop']:
                     await asyncio.gather(
                         member.send(f"{interaction.user.mention} Calling you for the {attempt+1} time"),
                         member.move_to(channel1)
@@ -59,9 +64,7 @@ class Poke(commands.Cog):
                     await asyncio.sleep(1)  # Wait for 1 second
                     await member.move_to(channel2)
                     
-
             # Move back to the original channel
-            self.stopLoop = False
             await member.send(f"{member.mention} We tried to wake you up!")
             await member.move_to(originalChannel)
         except Forbidden:
@@ -87,11 +90,7 @@ class Poke(commands.Cog):
         except Exception as e:
             await interaction.followup.send(f"{member.mention} Leave a poke room", ephemeral=True)
         finally:
-            # Clean up channels
-            self.stopLoop = None
-            self.active_member = None
-            self.nameMember = None
-            self.userStop = None
+            self.active_pokes.pop(member.id, None)
             if channel1:
                 try:
                     await channel1.delete()
@@ -106,10 +105,11 @@ class Poke(commands.Cog):
     # context menu
     async def poke_menu(self, ctx: discord.Interaction, member: discord.Member):
         number = 4
-        self.nameMember = member.name
-        self.active_member = member
-    
         await ctx.response.defer(ephemeral=True)
+
+        if member.id in self.active_pokes:
+            await ctx.followup.send(f"{member.mention} is already being poked!", ephemeral=True)
+            return
     
         if number <= 0:
             await ctx.followup.send("Please specify the number of rounds greater than 0!")
@@ -117,6 +117,11 @@ class Poke(commands.Cog):
         if not member.voice:
             await ctx.followup.send(f"{member.mention} Not In Voice Channel!")
             return
+
+        self.active_pokes[member.id] = {
+            'member': member,
+            'stop_loop': False
+        }
 
         originalChannel = member.voice.channel
         channel1 = None
@@ -137,12 +142,12 @@ class Poke(commands.Cog):
                 await asyncio.sleep(1)  # Wait for 1 second
                 await member.move_to(channel2)
                 count += 1
-                if self.stopLoop and self.userStop == member or count >= 500:
+                state = self.active_pokes.get(member.id)
+                if not state or state['stop_loop'] or count >= 500:
                     break
                     
 
             # Move back to the original channel
-            self.stopLoop = False
             await member.send(f"{member.mention} We tried to wake you up!")
             await member.move_to(originalChannel)
         except Forbidden:
@@ -167,10 +172,7 @@ class Poke(commands.Cog):
         except Exception as e:
             await ctx.followup.send(f"{member.mention} Leave a poke room", ephemeral=True)
         finally:
-            self.stopLoop = None
-            self.active_member = None
-            self.nameMember = None
-            self.userStop = None
+            self.active_pokes.pop(member.id, None)
             if channel1:
                 try:
                     await channel1.delete()
@@ -183,15 +185,32 @@ class Poke(commands.Cog):
                     pass
 
 
-    # Prefix Command: \stop
+    # Prefix Command: \stop [member_name]
     @commands.command()
-    async def stop(self, ctx):
-        self.stopLoop = True
-        if self.active_member:
-            self.userStop = self.active_member
-            await ctx.send(f'You stop poke {self.active_member.name}.')
-        else:
+    async def stop(self, ctx, *, member_name: str = None):
+        if not self.active_pokes:
             await ctx.send('There is no trigger currently operating.')
+            return
+
+        if member_name:
+            target_id = None
+            target_name = None
+            for mid, state in self.active_pokes.items():
+                if state['member'].name.lower() == member_name.lower():
+                    target_id = mid
+                    target_name = state['member'].name
+                    break
+            
+            if target_id:
+                self.active_pokes[target_id]['stop_loop'] = True
+                await ctx.send(f"You stop poke {target_name}.")
+            else:
+                await ctx.send(f"No active poke trigger found for '{member_name}'.")
+        else:
+            names = [state['member'].name for state in self.active_pokes.values()]
+            for state in self.active_pokes.values():
+                state['stop_loop'] = True
+            await ctx.send(f"You stopped all active pokes for: {', '.join(names)}.")
 
     # Slash Command: /stop
     @app_commands.command(name='stop', description='Stop Move Some Member')
@@ -200,28 +219,35 @@ class Poke(commands.Cog):
     )
     async def stop_command(self, interaction: discord.Interaction, member: str):
         await interaction.response.defer(ephemeral=True)
-        if self.active_member and self.active_member.name == member:
-            self.userStop = self.active_member
-            self.stopLoop = True
-            await interaction.followup.send(f'You stop poke {self.active_member.name}.', ephemeral=True)
+        target_id = None
+        target_name = None
+        for mid, state in self.active_pokes.items():
+            if state['member'].name == member:
+                target_id = mid
+                target_name = state['member'].name
+                break
+        
+        if target_id:
+            self.active_pokes[target_id]['stop_loop'] = True
+            await interaction.followup.send(f'You stop poke {target_name}.', ephemeral=True)
         else:
             await interaction.followup.send('There is no trigger currently operating for this member.', ephemeral=True)
 
     @stop_command.autocomplete('member')
     async def stop_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
-        if self.active_member and current.lower() in self.active_member.name.lower():
-            return [
-                app_commands.Choice(name=self.active_member.name, value=self.active_member.name)
-            ]
-        return []
+        choices = []
+        for state in self.active_pokes.values():
+            name = state['member'].name
+            if current.lower() in name.lower():
+                choices.append(app_commands.Choice(name=name, value=name))
+        return choices[:25]
 
     # Context Menu: Stop Poke 
     async def stop_menu(self, ctx: discord.Interaction, user: discord.User):
         await ctx.response.defer(ephemeral=True)
-        if self.active_member and self.active_member.id == user.id:
-            self.userStop = user
-            self.stopLoop = True
-            await ctx.followup.send(f'You stop poke {self.active_member.name}.', ephemeral=True)
+        if user.id in self.active_pokes:
+            self.active_pokes[user.id]['stop_loop'] = True
+            await ctx.followup.send(f'You stop poke {self.active_pokes[user.id]["member"].name}.', ephemeral=True)
         else:
             await ctx.followup.send('Please press stop on the person being poked.', ephemeral=True)
 
