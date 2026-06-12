@@ -119,6 +119,14 @@ COMMANDS_METADATA = [
             'en': 'Mute mic, deafen headphones, or both for a specific duration (s/m/h)'
         }
     },
+    {
+        'name': 'unmute',
+        'type': 'slash',
+        'description': {
+            'th': 'เปิดไมค์ หรือหูฟัง หรือทั้งสองอย่าง ให้สมาชิกที่ถูกปิดอยู่ทันที',
+            'en': 'Unmute mic, undeafen headphones, or both immediately'
+        }
+    },
     # Context Menu (Apps)
     {
         'name': 'Poke Until Stop',
