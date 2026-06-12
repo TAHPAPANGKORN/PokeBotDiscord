@@ -174,5 +174,48 @@ class Voice(commands.Cog):
         except Exception as e:
             await interaction.followup.send(f"Error! {e}", ephemeral=True)
 
+    # unmute choice
+    @app_commands.command(name="unmute", description="Unmute or Undeafen a member immediately.")
+    @app_commands.choices(action=[
+        app_commands.Choice(name="Microphone Only (Unmute)", value="unmute"),
+        app_commands.Choice(name="Headphones Only (Undeafen)", value="undeafen"),
+        app_commands.Choice(name="Both (Unmute & Undeafen)", value="both")
+    ])
+    async def unmute_command(
+        self, 
+        interaction: discord.Interaction, 
+        member: discord.Member, 
+        action: str = "both"
+    ):
+        await interaction.response.defer(ephemeral=True)
+
+        if not member.voice:
+            await interaction.followup.send(f"{member.mention} is not in a voice channel.", ephemeral=True)
+            return
+
+        is_unmute = action in ['unmute', 'both']
+        is_undeafen = action in ['undeafen', 'both']
+        
+        action_text = "unmuted & undeafened" if action == "both" else ("unmuted" if action == "unmute" else "undeafened")
+
+        try:
+            # Prepare the edit parameters dynamically based on what is being unmuted
+            kwargs = {}
+            if is_unmute:
+                kwargs['mute'] = False
+            if is_undeafen:
+                kwargs['deafen'] = False
+
+            await member.edit(**kwargs)
+            await interaction.followup.send(
+                f"Successfully {action_text} {member.mention}.", 
+                ephemeral=True
+            )
+
+        except discord.HTTPException as e:
+            await interaction.followup.send(f"Failed to edit member: {e.text}", ephemeral=True)
+        except Exception as e:
+            await interaction.followup.send(f"Error! {e}", ephemeral=True)
+
 async def setup(bot):
     await bot.add_cog(Voice(bot))
