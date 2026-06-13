@@ -3,10 +3,12 @@ from discord.ext import commands
 from discord import app_commands
 from datetime import datetime, timedelta
 import pytz
+import asyncio
 
 class Voice(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.active_tasks = {}  # Store active temporary mute tasks: {member_id: asyncio.Task}
 
     # Slash Command: /micmute
     @app_commands.command(name="micmute", description="Set time to mute microphone")
@@ -27,6 +29,11 @@ class Voice(commands.Cog):
             return
 
         try:
+            # Cancel any existing task for this member
+            if member.id in self.active_tasks:
+                self.active_tasks[member.id].cancel()
+            self.active_tasks[member.id] = asyncio.current_task()
+
             await member.edit(mute=True)
             await interaction.followup.send(
                 f"You muted {member.mention} until {target_time.strftime('%H:%M:%S')} UTC+7", 
@@ -41,10 +48,16 @@ class Voice(commands.Cog):
             else:
                 await interaction.followup.send(f"{member.mention} left the voice channel, timer cleared.", ephemeral=True)
 
+        except asyncio.CancelledError:
+            # Task was cancelled due to a newer mute or manual unmute, do nothing
+            pass
         except discord.HTTPException as e:
             await interaction.followup.send(f"Failed to edit member: {e.text}", ephemeral=True)
         except Exception as e:
             await interaction.followup.send(f"An unexpected error occurred: {e}", ephemeral=True)
+        finally:
+            if self.active_tasks.get(member.id) == asyncio.current_task():
+                self.active_tasks.pop(member.id, None)
 
     # Slash Command: /headphonemute
     @app_commands.command(name="earmute", description="Set time to mute headphone.")
@@ -65,6 +78,11 @@ class Voice(commands.Cog):
             return
 
         try:
+            # Cancel any existing task for this member
+            if member.id in self.active_tasks:
+                self.active_tasks[member.id].cancel()
+            self.active_tasks[member.id] = asyncio.current_task()
+
             await member.edit(deafen=True)
             await interaction.followup.send(
                 f"You earmuted {member.mention} until {target_time.strftime('%H:%M:%S')} UTC+7", 
@@ -79,10 +97,15 @@ class Voice(commands.Cog):
             else:
                 await interaction.followup.send(f"{member.mention} left the voice channel, timer cleared.", ephemeral=True)
 
+        except asyncio.CancelledError:
+            pass
         except discord.HTTPException as e:
             await interaction.followup.send(f"Failed to edit member: {e.text}", ephemeral=True)
         except Exception as e:
             await interaction.followup.send(f"An unexpected error occurred: {e}", ephemeral=True)
+        finally:
+            if self.active_tasks.get(member.id) == asyncio.current_task():
+                self.active_tasks.pop(member.id, None)
 
 
     @app_commands.command(name="muteboth", description="Set time to deafen a member.")
@@ -103,6 +126,11 @@ class Voice(commands.Cog):
             return
 
         try:
+            # Cancel any existing task for this member
+            if member.id in self.active_tasks:
+                self.active_tasks[member.id].cancel()
+            self.active_tasks[member.id] = asyncio.current_task()
+
             await member.edit(deafen=True, mute=True)
             await interaction.followup.send(
                 f"You deafened {member.mention} until {target_time.strftime('%H:%M:%S')} UTC+7", 
@@ -117,10 +145,15 @@ class Voice(commands.Cog):
             else:
                 await interaction.followup.send(f"{member.mention} left the voice channel, timer cleared.", ephemeral=True)
 
+        except asyncio.CancelledError:
+            pass
         except discord.HTTPException as e:
             await interaction.followup.send(f"Failed to edit member: {e.text}", ephemeral=True)
         except Exception as e:
             await interaction.followup.send(f"An unexpected error occurred: {e}", ephemeral=True)
+        finally:
+            if self.active_tasks.get(member.id) == asyncio.current_task():
+                self.active_tasks.pop(member.id, None)
 
 
     # mute choice
@@ -159,6 +192,11 @@ class Voice(commands.Cog):
         action_text = "muted & deafened" if action == "both" else ("muted" if action == "mute" else "deafened")
 
         try:
+            # Cancel any existing task for this member
+            if member.id in self.active_tasks:
+                self.active_tasks[member.id].cancel()
+            self.active_tasks[member.id] = asyncio.current_task()
+
             await member.edit(mute=is_mute, deafen=is_deafen)
             await interaction.followup.send(
                 f"You {action_text} {member.mention} until {target_time.strftime('%H:%M:%S')} UTC+7", 
@@ -171,8 +209,13 @@ class Voice(commands.Cog):
                 await member.edit(mute=False, deafen=False)
                 await interaction.followup.send(f"Un{action_text} {member.mention}", ephemeral=True)
 
+        except asyncio.CancelledError:
+            pass
         except Exception as e:
             await interaction.followup.send(f"Error! {e}", ephemeral=True)
+        finally:
+            if self.active_tasks.get(member.id) == asyncio.current_task():
+                self.active_tasks.pop(member.id, None)
 
     # unmute choice
     @app_commands.command(name="unmute", description="Unmute or Undeafen a member immediately.")
@@ -192,6 +235,11 @@ class Voice(commands.Cog):
         if not member.voice:
             await interaction.followup.send(f"{member.mention} is not in a voice channel.", ephemeral=True)
             return
+
+        # Cancel any active temporary mute task for this member
+        if member.id in self.active_tasks:
+            self.active_tasks[member.id].cancel()
+            self.active_tasks.pop(member.id, None)
 
         is_unmute = action in ['unmute', 'both']
         is_undeafen = action in ['undeafen', 'both']
